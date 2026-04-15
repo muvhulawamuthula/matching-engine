@@ -1,0 +1,26 @@
+ORDER MATCHING ENGINE SNAPSHOT
+Best bid: 100.06 qty=31
+Best ask: 100.11 qty=18
+Resting buys: 6900
+Resting sells: 6706
+Top bids: [100.06 x 31, 99.90 x 36, 99.86 x 13, 99.82 x 22, 99.80 x 31]
+Top asks: [100.11 x 18, 100.19 x 28, 100.25 x 4, 100.83 x 14, 100.85 x 68]
+Processed commands: 109839
+Accepted orders: 103013
+Rejected commands: 5728
+Cancelled orders: 1102
+Cancel misses: 5724
+Trades: 85127
+Traded quantity: 615092
+Latency: p50=0.99us, p95=6.99us, p99=21.72us
+Recent trades:
+- aggressive=10027214, passive=20030516, priceTicks=10083, qty=10
+- aggressive=26894, passive=20030546, priceTicks=10008, qty=3
+- aggressive=26894, passive=20030553, priceTicks=10006, qty=16
+- aggressive=26894, passive=30025151, priceTicks=9996, qty=6
+- aggressive=20030562, passive=10027215, priceTicks=10025, qty=10
+- aggressive=10027216, passive=30025151, priceTicks=9996, qty=6
+- aggressive=10027217, passive=30025151, priceTicks=9996, qty=3
+- aggressive=10027217, passive=20030547, priceTicks=9990, qty=1
+- aggressive=20030565, passive=20030563, priceTicks=10011, qty=10
+- aggressive=10027221, passive=20030563, priceTicks=10011, qty=1
