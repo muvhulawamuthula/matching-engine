@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="com.muvhulawa.matchingengine.engine.MatchingEngineTest" time="0.215" tests="3" errors="0" skipped="0" failures="1">
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="com.muvhulawa.matchingengine.engine.MatchingEngineTest" time="0.184" tests="3" errors="0" skipped="0" failures="0">
   <properties>
     <property name="java.specification.version" value="25"/>
     <property name="sun.jnu.encoding" value="UTF-8"/>
@@ -12,7 +12,7 @@
     <property name="sun.java.launcher" value="SUN_STANDARD"/>
     <property name="user.country" value="ZA"/>
     <property name="sun.boot.library.path" value="/home/mac/.jdk/jdk-25/lib"/>
-    <property name="sun.java.command" value="/home/mac/Desktop/final-elite-matching-engine/target/surefire/surefirebooter-20260416004417816_3.jar /home/mac/Desktop/final-elite-matching-engine/target/surefire 2026-04-16T00-44-17_296-jvmRun1 surefire-20260416004417816_1tmp surefire_0-20260416004417816_2tmp"/>
+    <property name="sun.java.command" value="/home/mac/Desktop/final-elite-matching-engine/target/surefire/surefirebooter-20260416005234924_3.jar /home/mac/Desktop/final-elite-matching-engine/target/surefire 2026-04-16T00-52-34_555-jvmRun1 surefire-20260416005234924_1tmp surefire_0-20260416005234924_2tmp"/>
     <property name="jdk.debug" value="release"/>
     <property name="surefire.test.class.path" value="/home/mac/Desktop/final-elite-matching-engine/target/test-classes:/home/mac/Desktop/final-elite-matching-engine/target/classes:/home/mac/.m2/repository/org/junit/jupiter/junit-jupiter/5.10.2/junit-jupiter-5.10.2.jar:/home/mac/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.10.2/junit-jupiter-api-5.10.2.jar:/home/mac/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:/home/mac/.m2/repository/org/junit/platform/junit-platform-commons/1.10.2/junit-platform-commons-1.10.2.jar:/home/mac/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:/home/mac/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.10.2/junit-jupiter-params-5.10.2.jar:/home/mac/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.10.2/junit-jupiter-engine-5.10.2.jar:/home/mac/.m2/repository/org/junit/platform/junit-platform-engine/1.10.2/junit-platform-engine-1.10.2.jar:"/>
     <property name="sun.cpu.endian" value="little"/>
@@ -27,7 +27,7 @@
     <property name="line.separator" value="&#10;"/>
     <property name="java.specification.name" value="Java Platform API Specification"/>
     <property name="java.vm.specification.vendor" value="Oracle Corporation"/>
-    <property name="surefire.real.class.path" value="/home/mac/Desktop/final-elite-matching-engine/target/surefire/surefirebooter-20260416004417816_3.jar"/>
+    <property name="surefire.real.class.path" value="/home/mac/Desktop/final-elite-matching-engine/target/surefire/surefirebooter-20260416005234924_3.jar"/>
     <property name="sun.management.compiler" value="HotSpot 64-Bit Tiered Compilers"/>
     <property name="java.runtime.version" value="25.0.2+10-LTS"/>
     <property name="user.name" value="mac"/>
@@ -55,20 +55,7 @@
     <property name="sun.io.unicode.encoding" value="UnicodeLittle"/>
     <property name="java.class.version" value="69.0"/>
   </properties>
-  <testcase name="cancelShouldRemoveRestingOrder" classname="com.muvhulawa.matchingengine.engine.MatchingEngineTest" time="0.053"/>
-  <testcase name="marketOrderShouldNotRestResidual" classname="com.muvhulawa.matchingengine.engine.MatchingEngineTest" time="0.016"/>
-  <testcase name="shouldRespectPriceTimePriorityForAsks" classname="com.muvhulawa.matchingengine.engine.MatchingEngineTest" time="0.116">
-    <failure message="expected: &lt;10.00&gt; but was: &lt;100.00&gt;" type="org.opentest4j.AssertionFailedError"><![CDATA[org.opentest4j.AssertionFailedError: expected: <10.00> but was: <100.00>
-	at org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
-	at org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
-	at org.junit.jupiter.api.AssertEquals.failNotEqual(AssertEquals.java:197)
-	at org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:182)
-	at org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:177)
-	at org.junit.jupiter.api.Assertions.assertEquals(Assertions.java:1145)
-	at com.muvhulawa.matchingengine.engine.MatchingEngineTest.shouldRespectPriceTimePriorityForAsks(MatchingEngineTest.java:31)
-	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
-	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
-	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
-]]></failure>
-  </testcase>
+  <testcase name="cancelShouldRemoveRestingOrder" classname="com.muvhulawa.matchingengine.engine.MatchingEngineTest" time="0.094"/>
+  <testcase name="marketOrderShouldNotRestResidual" classname="com.muvhulawa.matchingengine.engine.MatchingEngineTest" time="0.023"/>
+  <testcase name="shouldRespectPriceTimePriorityForAsks" classname="com.muvhulawa.matchingengine.engine.MatchingEngineTest" time="0.034"/>
 </testsuite>
