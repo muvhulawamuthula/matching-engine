@@ -88,11 +88,4 @@ java -jar dist/matching-engine.jar benchmark 10
 - approximate p50 / p95 / p99 processing latency
 - top-of-book snapshot
 
-## Next elite upgrades
-If you want to take this even further, the next strong additions would be:
-- persistence and recovery log
-- stricter risk checks before acceptance
-- binary protocol or TCP gateway
-- JMH microbenchmarks for queue and matching hot path
-- JFR-driven optimization report with before/after comparisons
 
