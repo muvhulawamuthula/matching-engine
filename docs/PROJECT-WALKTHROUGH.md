@@ -1,138 +1,198 @@
-# Order Matching Engine Walkthrough
+# Project walkthrough
+
+A guided tour of the matching engine for readers who want to understand *why* the code is shaped this way — not only *what* each class does.
+
+For setup commands, see [GETTING-STARTED.md](GETTING-STARTED.md).  
+For component diagrams and invariants, see [ARCHITECTURE.md](ARCHITECTURE.md).
+
+---
 
 ## 1. Big picture
-This system accepts order commands from multiple producer threads and feeds them into a single matching worker.
 
-That design gives us two benefits:
-- order entry can scale across threads
-- book mutation stays deterministic because only one worker mutates the book
+Order entry can be concurrent. Book mutation must not be.
 
-## 2. Command model
-The `Order` class is used as a command object. It supports:
-- `LIMIT`
-- `MARKET`
-- `CANCEL`
+```text
+N producers  →  MPSC RingBuffer  →  1 MatchingWorker  →  MatchingEngine / OrderBook
+```
 
-It also stores:
-- side
-- price in integer ticks
-- original quantity
-- remaining quantity
-- timestamp
-- target order ID for cancels
-- lifecycle status
+That split gives:
 
-## 3. Why integer ticks are better than double
-`double` values are risky for financial comparison because binary floating-point cannot represent many decimal values exactly.
+- **Scalable ingress** — many threads publish commands
+- **Deterministic matching** — one worker owns all book state
+- **Simple reasoning** — no lock around price-time priority logic
 
-This project converts prices into integer ticks. Example:
-- `100.25` becomes `10025`
+`Main` exposes two modes: `demo` (direct engine calls, fixed scenario) and `benchmark` (full producer → ring → worker path).
 
-That makes comparisons exact and keeps matching logic clean.
+---
 
-## 4. Ring buffer
-The ring buffer is bounded and supports multiple producers and one consumer.
+## 2. Command model (`model/Order.java`)
 
-The important fix was atomic slot claiming:
-- producer reads current enqueue sequence
-- producer uses CAS to claim that sequence
-- only the winning producer may write to that slot
+`Order` is both a **command** and a **resting order** record. Types:
 
-Per-slot sequence numbers tell producers and the consumer whether a slot is free, ready, or still owned by another cycle of the ring.
+| Type | Meaning |
+|---|---|
+| `LIMIT` | Match then rest residual |
+| `MARKET` | Match only; residual rejected |
+| `CANCEL` | Remove resting order by `targetOrderId` |
 
-## 5. Worker
-The worker loops until:
-- shutdown has been requested, and
-- the buffer is empty
+Also tracked: side, price ticks, original/remaining quantity, timestamp, lifecycle `Status`.
 
-This ensures a clean drain instead of dropping in-flight work.
+Factory methods (`limit` / `market` / `cancel`) and `reset*` methods exist so producers can reuse pooled instances without allocating new wrappers every time.
 
-The worker also measures per-command processing latency and feeds that into the latency recorder.
+---
 
-## 6. Order book
-The order book uses:
-- descending bid price map
-- ascending ask price map
-- FIFO order within each price level using `LinkedHashMap`
-- direct order ID index for cancel support
+## 3. Why integer ticks beat `double`
 
-This gives:
-- best price lookup
-- time priority within a level
-- quick cancel by ID
+Binary floating-point cannot represent many decimal prices exactly. Comparing `double`s in a matching loop invites subtle bugs.
 
-## 7. Matching logic
-### Buy order
-A buy order matches the best ask while the book has asks it can cross.
+`PriceUtil` converts with scale `2`:
 
-### Sell order
-A sell order matches the best bid while the book has bids it can cross.
+- `100.25` → `10025` ticks
+- Formatting for snapshots uses `BigDecimal` plain strings
+
+All hot-path comparisons use `long` ticks.
+
+---
+
+## 4. Ring buffer (`queue/RingBuffer.java`)
+
+Bounded MPSC. Study this file first if you care about concurrency.
+
+Publish path (simplified):
+
+1. Read current enqueue sequence
+2. Check per-slot sequence → is this slot free for this cycle?
+3. CAS to claim the sequence
+4. Only the winning producer writes the slot and advances the slot sequence
+
+Consume mirrors that for the single consumer. Full buffer → `publish` returns `false`. Empty → `consume` returns `null`.
+
+**Contrast:** `OrderQueue` wraps `ArrayBlockingQueue` (blocking put/take). It is in the tree for comparison but **not** used by `Main`.
+
+---
+
+## 5. Worker (`engine/MatchingWorker.java`)
+
+Shutdown contract:
+
+```text
+while (running || !buffer.isEmpty()) { ... }
+```
+
+Producers stop → worker keeps draining → then exits. Per-command latency is measured around `engine.process(order)` and fed to `LatencyRecorder` (sampled, not every call).
+
+---
+
+## 6. Order book (`orderbook/OrderBook.java`)
+
+| Piece | Role |
+|---|---|
+| Bids `TreeMap` (reverse order) | Best bid = highest price |
+| Asks `TreeMap` (natural order) | Best ask = lowest price |
+| Level `LinkedHashMap<orderId, Order>` | FIFO time priority within price |
+| `orderIndex` | Fast cancel / contains by ID |
+
+`snapshot(depth)` returns best bid/ask (formatted), resting counts, and top levels.
+
+---
+
+## 7. Matching logic (`engine/MatchingEngine.java`)
+
+### Crossing
+
+- **Buy limit** crosses while best ask exists and `buy.priceTicks >= ask.priceTicks`
+- **Sell limit** crosses while best bid exists and `sell.priceTicks <= bid.priceTicks`
+- **Market** crosses any available opposite liquidity
 
 ### Trade price
-This implementation uses the passive order price as the trade price.
 
-### Partial fills
-If the aggressive order still has quantity after a trade, it continues matching.
-If the passive order is fully filled, it is removed from the book.
-If a limit order still has residual quantity after matching, it rests on the book.
-If a market order still has residual quantity, it is rejected and discarded.
+Always the **passive** (resting) order’s price — standard maker/taker pricing for this style of book.
+
+### Residuals
+
+- Limit residual → `orderBook.add` → status resting + report
+- Market residual → reject detail `"Unfilled market residual cancelled"` → pool release
+- Filled aggressive/passive → reports + pool release as appropriate
+
+### Cancel
+
+`orderBook.cancel(targetId)` updates the level and index. Misses increment `cancelMisses` and emit a reject report. The cancel **command** object is always released to the pool.
+
+---
 
 ## 8. Events
-Two event types are recorded:
-- `Trade`
-- `ExecutionReport`
 
-`Trade` tells you what executed.
-`ExecutionReport` tells you how an order/command ended up: filled, partially filled, resting, cancelled, or rejected.
+| Type | Answers |
+|---|---|
+| `Trade` | What executed? (IDs, price ticks, qty, side of aggressor) |
+| `ExecutionReport` | How did this command/order end up? (filled / partial / resting / cancelled / rejected + detail) |
+
+Stored in-memory via `EventLog` for demo/benchmark inspection.
+
+---
 
 ## 9. Metrics
-The engine tracks:
-- processed commands
-- accepted orders
-- rejected commands
-- cancelled orders
-- cancel misses
-- trade count
-- traded quantity
-- sampled latency percentiles
 
-Latency sampling is intentionally lightweight so benchmark mode remains cheap to run.
+`EngineMetrics` tracks:
 
-## 10. Snapshot
-At the end of a benchmark run, the system writes a text snapshot that includes:
-- best bid / ask
-- resting order counts
-- top levels on both sides
-- counters
-- recent trades
+- processed commands, accepted orders, rejected commands
+- cancelled orders, cancel misses
+- trade count, traded quantity
+- sampled latency percentiles (`p50` / `p95` / `p99` in µs)
 
-This makes the engine easier to inspect after a run.
+Sampling stride keeps benchmark overhead low (`stride=64`, capped sample buffer).
+
+---
+
+## 10. Snapshots
+
+After benchmark, `SnapshotWriter` writes `build/latest-snapshot.txt` with top of book, counters, latency summary, and recent trades. Handy when stdout scrolls past.
+
+---
 
 ## 11. Demo mode
-`demo` mode runs a fixed sequence of commands so you can see the matching logic in a predictable way.
+
+Fixed sequence in `Main.runDeterministicDemo` — ideal for stepping through fills and a cancel without producer noise. Does **not** use the ring/worker path (so worker latency samples are empty).
+
+---
 
 ## 12. Benchmark mode
-`benchmark` mode starts multiple producers and one worker. Producers generate a mixture of:
-- limit orders
-- market orders
-- cancel commands
 
+Four producers publish a xor-shift mix of roughly:
 
+- ~6% cancel (`selector < 8`)
+- ~19% market (`8 ≤ selector < 32`)
+- ~75% limit (otherwise)
 
-## 13. Why this project is strong for a Java portfolio
-This project is much stronger than a CRUD app because it shows:
-- concurrency reasoning
-- bounded queue design
-- deterministic single-threaded matching core
-- financial-domain modeling
-- lifecycle events and metrics
-- benchmarking and observability thinking
+Prices cluster around `9900–10155` ticks (`99.00–101.55`). Quantities are small positive ranges. Producers spin on a full ring; on shutdown they release unsent pooled orders.
 
-## 14. What you should study in the code first
-1. `queue/RingBuffer.java`
-2. `engine/MatchingWorker.java`
-3. `orderbook/OrderBook.java`
-4. `engine/MatchingEngine.java`
-5. `Main.java`
+Defaults:
 
+- Java `benchmark` with no duration → **15s**
+- `./run-benchmark.sh` with no arg → **10s**
 
+---
+
+## 13. Why this works as a Java portfolio piece
+
+It shows more than CRUD:
+
+- Concurrency design (MPSC ingress vs single-writer core)
+- Bounded queue / backpressure thinking
+- Market microstructure (price-time, passive pricing, market residuals)
+- Lifecycle events and lightweight telemetry
+- Build scripts that run without Maven, plus optional Maven tests
+
+---
+
+## 14. Suggested study order
+
+1. `queue/RingBuffer.java` — claim/publish/consume
+2. `engine/MatchingWorker.java` — drain-on-stop + timing
+3. `orderbook/OrderBook.java` — priority structures
+4. `engine/MatchingEngine.java` — match / rest / reject
+5. `Main.java` — demo vs benchmark wiring
+6. `model/Order.java` + `pool/OrderPool.java` — command reuse
+7. Tests under `src/test/java/...` — expected behaviors as executable docs
+
+Then re-read [ARCHITECTURE.md](ARCHITECTURE.md) to lock in the invariants.
