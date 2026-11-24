@@ -86,4 +86,6 @@ mvn test
 - approximate p50 / p95 / p99 processing latency
 - top-of-book snapshot
 
+## License
 
+MIT. See [LICENSE](LICENSE).
