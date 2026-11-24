@@ -45,38 +45,36 @@ A cancel command removes a resting order by target order ID. If the order is alr
 ### Price-time priority
 Within the same price level, older orders fill before newer orders. Between price levels, better prices match first.
 
-## What changed from the original project
-1. The ring buffer was made safe for multiple producers using atomic sequence claiming.
-2. Worker shutdown now drains the queue before exiting.
-3. Prices moved to integer ticks instead of doubles.
-4. Order types now include LIMIT, MARKET, and CANCEL.
-5. The engine now emits trade events and execution reports.
-6. The order book now supports cancel-by-ID and snapshots.
-7. Benchmark output now includes trade stats and latency percentiles.
+## Implementation highlights
+1. Multi-producer-safe ring buffer using atomic sequence claiming.
+2. Worker shutdown drains the queue before exiting.
+3. Prices are integer ticks (2 decimal places), never doubles.
+4. LIMIT, MARKET and CANCEL order types.
+5. Trade events and execution reports for every fill.
+6. Cancel-by-ID and top-of-book snapshots.
+7. Benchmark reports trade stats and p50 / p95 / p99 latency.
 
 ## Build and run
-This repo includes a plain Java build path so you can run it even without Maven installed.
+Requires JDK 21. Maven is optional: the scripts use plain `javac` and `jar`.
 
-### Compile
+```bash
+./build.sh               # compiles to out/ and packages dist/matching-engine.jar
+./run-demo.sh            # scripted demo session
+./run-benchmark.sh       # multi-producer benchmark
+```
+
+Or by hand:
+
 ```bash
 find src/main/java -name "*.java" | sort > sources_main.txt
 javac -d out @sources_main.txt
-```
-
-### Run demo
-```bash
 java -cp out com.muvhulawa.matchingengine.Main demo
-```
-
-### Run benchmark
-```bash
 java -cp out com.muvhulawa.matchingengine.Main benchmark 10
 ```
 
-### Build runnable jar
+## Tests
 ```bash
-jar --create --file dist/matching-engine.jar --main-class com.muvhulawa.matchingengine.Main -C out .
-java -jar dist/matching-engine.jar benchmark 10
+mvn test
 ```
 
 ## Example output

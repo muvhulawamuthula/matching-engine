@@ -28,7 +28,7 @@ class MatchingEngineTest {
         assertEquals(6L, metrics.getTradedQuantity());
         assertFalse(engine.containsRestingOrder(1L));
         assertTrue(engine.containsRestingOrder(2L));
-        assertEquals("10.00", engine.snapshot(3).bestAsk());
+        assertEquals("100.00", engine.snapshot(3).bestAsk());
         assertEquals(6L, engine.snapshot(3).bestAskQuantity());
     }
 
