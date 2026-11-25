@@ -1,0 +1,10 @@
+target/
+out/
+dist/
+build/
+sources_main.txt
+
+.idea/
+*.iml
+.vscode/
+.DS_Store
